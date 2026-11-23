@@ -159,13 +159,26 @@
   .crow .st{font-size:12.5px;margin-top:6px;color:var(--ink2)}
   .st.warn{color:#a87400} .st.over{color:var(--err);font-weight:600}
   @media (prefers-color-scheme: dark){ .f.warn{background:#e0a91a} .st.warn{color:#e0b44a} }
+  .tabbar{position:fixed;left:0;right:0;bottom:0;z-index:15;display:flex;justify-content:space-around;
+    background:color-mix(in srgb, var(--card) 92%, transparent);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);
+    border-top:1px solid var(--line);padding:6px 8px calc(6px + env(safe-area-inset-bottom))}
+  .tabbar button{flex:1;max-width:140px;border:0;background:none;color:var(--ink2);font:inherit;font-size:11.5px;font-weight:600;
+    display:flex;flex-direction:column;align-items:center;gap:3px;padding:4px 0;border-radius:12px}
+  .tabbar button.on{color:var(--accent)}
+  .tabbar button:active{background:var(--chip-on)}
+  body:not(.nonav) .screen{padding-bottom:calc(64px + env(safe-area-inset-bottom))}
+  body.nonav .tabbar{display:none}
+  body:not(.nonav) .toast{bottom:calc(76px + env(safe-area-inset-bottom))}
+  .top .ttl{flex:1;text-align:center}
+  .who{font-size:14px;color:var(--ink2);font-weight:600}
   .empty{color:var(--ink2);text-align:center;padding:40px 0}
 
   /* уведомление */
   .toast{position:fixed;left:12px;right:12px;bottom:calc(16px + env(safe-area-inset-bottom));max-width:496px;margin:0 auto;
     background:var(--ink);color:var(--bg);border-radius:16px;padding:14px 16px;display:flex;gap:12px;align-items:center;
     transform:translateY(160%);transition:transform .25s ease;z-index:30}
-  .toast.on{transform:none}
+  .toast.on{transform:none;pointer-events:auto}
+  .toast:not(.on){pointer-events:none;transform:translateY(calc(100% + 140px))}
   .toast .t{flex:1;font-size:15px}
   .toast .t b{display:block;font-size:16px}
   .toast .dim{opacity:.7}
@@ -217,7 +230,7 @@
 <section class="screen on" id="s1">
   <div class="top">
     <h1>Новый расход</h1>
-    <div class="navr"><button class="link" id="toDash">Бюджет</button><button class="link" id="toHist">История</button></div>
+    <span class="who" id="whoLbl"></span>
   </div>
   <div class="dates" id="dates"></div>
   <div class="amount">
@@ -247,9 +260,7 @@
 <!-- Экран 4: план / факт -->
 <section class="screen" id="s4">
   <div class="top">
-    <button class="link" id="dashBack">‹ Назад</button>
-    <h1>План / факт</h1>
-    <span style="width:60px"></span>
+    <h1 class="ttl">План / факт</h1>
   </div>
   <div class="mon">
     <button class="mbtn" id="mPrev">‹</button><b id="mName"></b><button class="mbtn" id="mNext">›</button>
@@ -259,9 +270,7 @@
 
 <section class="screen" id="s3">
   <div class="top">
-    <button class="link" id="histBack">‹ Назад</button>
-    <h1>Последние записи</h1>
-    <span style="width:60px"></span>
+    <h1 class="ttl">Последние записи</h1>
   </div>
   <div class="list" id="hist"></div>
 </section>
@@ -281,6 +290,11 @@
   </div>
 </div>
 
+<nav class="tabbar" aria-label="Разделы">
+  <button data-go="s1" class="on"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg><span>Внести</span></button>
+  <button data-go="s3"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1.2" fill="currentColor" stroke="none"/><circle cx="4.5" cy="12" r="1.2" fill="currentColor" stroke="none"/><circle cx="4.5" cy="18" r="1.2" fill="currentColor" stroke="none"/></svg><span>История</span></button>
+  <button data-go="s4"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg><span>Бюджет</span></button>
+</nav>
 <div class="toast" id="toast"><div class="t" id="toastText"></div><button id="toastBtn">Отменить</button></div>
 <div class="busy" id="busy"><div class="spinbox"><div class="spin"></div><span id="busyText">Секунду…</span></div></div>
 <div class="netbar" id="netbar"></div>
@@ -398,7 +412,14 @@ function human(s){
   var p = s.split('-'); return (+p[2]) + ' ' + MONTHS_GEN[+p[1] - 1];
 }
 function store(k, v){ try { if (v === undefined) return JSON.parse(localStorage.getItem(k)); localStorage.setItem(k, JSON.stringify(v)); } catch(e){ return null; } }
-function show(id){ ['s1','s2','s3','s4'].forEach(function(s){ $(s).classList.toggle('on', s === id); }); }
+function show(id){
+  ['s1','s2','s3','s4'].forEach(function(s){ $(s).classList.toggle('on', s === id); });
+  document.body.classList.toggle('nonav', id === 's2');      // на выборе категории панель не нужна
+  var tab = id === 's2' ? 's1' : id;
+  Array.prototype.forEach.call(document.querySelectorAll('.tabbar button'), function(b){
+    var on = b.dataset.go === tab; b.classList.toggle('on', on); b.setAttribute('aria-current', on ? 'page' : 'false');
+  });
+}
 
 /* ---------- даты ---------- */
 function renderDates(){
@@ -798,8 +819,6 @@ function renderDash(){
     box.insertAdjacentHTML('beforeend', html);
   });
 }
-$('toDash').onclick = function(){ show('s4'); loadDash(); };
-$('dashBack').onclick = function(){ show('s1'); };
 $('mPrev').onclick = function(){ if (dash.m > 1) { dash.m--; loadDash(); } };
 $('mNext').onclick = function(){ if (dash.m < 12) { dash.m++; loadDash(); } };
 
@@ -812,8 +831,15 @@ $('next').onclick = function(){
 };
 $('back').onclick = function(){ show('s1'); };
 $('note').oninput = function(){ if ($('note').value.trim()) $('note').classList.remove('need'); };
-$('toHist').onclick = function(){ show('s3'); loadHist(); };
-$('histBack').onclick = function(){ show('s1'); };
+Array.prototype.forEach.call(document.querySelectorAll('.tabbar button'), function(b){
+  b.onclick = function(){
+    var go = b.dataset.go;
+    show(go);
+    if (go === 's3') loadHist();
+    if (go === 's4') loadDash();
+  };
+});
+if (WHO) $('whoLbl').textContent = WHO;
 
 renderDates(); renderPad(); renderAmount(); $('cats').innerHTML = skel('grid');
 if (!KEY || API_URL.indexOf('/exec') < 0) {
