@@ -97,6 +97,26 @@
   .row.undone{opacity:.45}
   .row.undone .a{text-decoration:line-through}
   .ubtn{border:1px solid var(--line);background:none;color:var(--err);border-radius:10px;padding:6px 10px;font:inherit;font-size:13px}
+  .hhint{color:var(--ink2);font-size:13px;margin:2px 4px 10px}
+  button.row{width:100%;text-align:left;font:inherit;color:inherit;cursor:pointer}
+  .row.tap:active{background:var(--chip-on)}
+  .row .chev{color:var(--ink2);font-size:22px;margin-left:2px}
+  .sheetWrap{position:fixed;inset:0;z-index:25;display:none}
+  .sheetWrap.on{display:block}
+  .sheetBg{position:absolute;inset:0;background:rgba(0,0,0,.35);animation:fadeIn .2s ease}
+  .sheetCard{position:absolute;left:0;right:0;bottom:0;max-width:520px;margin:0 auto;background:var(--bg);
+    border-radius:22px 22px 0 0;padding:16px 16px calc(16px + env(safe-area-inset-bottom));animation:slideUp .25s ease}
+  .sheetTop{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;font-size:17px}
+  .fld{display:block;margin:10px 0}
+  .fld span{display:block;font-size:13px;color:var(--ink2);margin:0 2px 5px}
+  .fld input{width:100%;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:12px;
+    padding:12px;font:inherit;font-size:17px;-webkit-appearance:none;appearance:none;min-height:48px}
+  .fld input:focus{outline:none;border-color:var(--accent)}
+  .edErr{color:var(--err);font-size:14px;min-height:18px;margin:2px 2px 8px}
+  .sheetCard .go{width:100%;margin:0 0 10px}
+  .del{width:100%;height:48px;border:1px solid var(--line);background:none;color:var(--err);border-radius:14px;font:inherit;font-weight:600}
+  @keyframes slideUp{from{transform:translateY(100%)}to{transform:none}}
+  @keyframes fadeIn{from{opacity:0}to{opacity:1}}
   .empty{color:var(--ink2);text-align:center;padding:40px 0}
 
   /* уведомление */
@@ -171,6 +191,21 @@
   <div class="list" id="hist"></div>
 </section>
 
+
+<!-- Окно редактирования записи -->
+<div class="sheetWrap" id="sheet">
+  <div class="sheetBg" id="sheetBg"></div>
+  <div class="sheetCard">
+    <div class="sheetTop"><b id="edName"></b><button class="link" id="edClose">Закрыть</button></div>
+    <label class="fld"><span>Сумма, ₸</span><input id="edAmount" inputmode="numeric" autocomplete="off"></label>
+    <label class="fld"><span>Дата</span><input id="edDate" type="date"></label>
+    <label class="fld"><span>Комментарий</span><input id="edNote" maxlength="120" autocomplete="off"></label>
+    <div class="edErr" id="edErr"></div>
+    <button class="go" id="edSave">Сохранить изменения</button>
+    <button class="del" id="edDelete">Удалить запись</button>
+  </div>
+</div>
+
 <div class="toast" id="toast"><div class="t" id="toastText"></div><button id="toastBtn">Отменить</button></div>
 <div class="busy" id="busy"></div>
 <div class="party" id="party"></div>
@@ -195,7 +230,8 @@ function runner(){
     getCategories: function(date){ call('cats', { date: date }, s, f); },
     addExpense:    function(e){ call('add', e, s, f, true); },
     undoExpense:   function(id){ call('undo', { id: id }, s, f, true); },
-    getRecent:     function(n){ call('recent', { limit: n }, s, f); }
+    getRecent:     function(n){ call('recent', { limit: n }, s, f); },
+    editExpense:   function(p){ call('edit', p, s, f, true); }
   };
   return r;
 }
@@ -499,20 +535,65 @@ function loadHist(){
     .withSuccessHandler(function(rows){
       var box = $('hist'); box.innerHTML = '';
       if (!rows.length) { box.innerHTML = '<div class="empty">Пока ничего не внесено через приложение</div>'; return; }
+      var hint = document.createElement('div'); hint.className = 'hhint'; hint.textContent = 'Нажмите на запись, чтобы изменить или удалить';
+      box.appendChild(hint);
       rows.forEach(function(r){
-        var el = document.createElement('div'); el.className = 'row' + (r.undone ? ' undone' : '');
+        var el = document.createElement(r.undone ? 'div' : 'button'); el.className = 'row' + (r.undone ? ' undone' : ' tap');
         el.innerHTML = '<div class="hic">' + icon(r.name) + '</div><div class="m"><div class="n">' + esc(r.name) + '</div><div class="s">' + esc(human(r.date)) +
-          (r.who ? ' · ' + esc(r.who) : '') + (r.note ? ' · ' + esc(r.note) : '') + '</div></div><div class="a">' + money(r.amount) + '</div>';
-        if (!r.undone) {
-          var b = document.createElement('button'); b.className = 'ubtn'; b.textContent = 'Отменить';
-          b.onclick = function(){ undo(r.id, loadHist); }; el.appendChild(b);
-        }
+          (r.who ? ' · ' + esc(r.who) : '') + (r.note ? ' · ' + esc(r.note) : '') + '</div></div><div class="a">' + money(r.amount) + '</div>' +
+          (r.undone ? '' : '<div class="chev">›</div>');
+        if (!r.undone) el.onclick = function(){ openEdit(r); };
         box.appendChild(el);
       });
     })
     .withFailureHandler(function(e){ $('hist').innerHTML = '<div class="empty">' + esc(e.message) + '</div>'; })
     .getRecent(30);
 }
+
+
+/* ---------- редактирование записи ---------- */
+var editing = null;
+function openEdit(r){
+  editing = r; $('toast').classList.remove('on');
+  $('edName').innerHTML = icon(r.name) + ' ' + esc(r.name);
+  $('edAmount').value = String(Math.round(r.amount));
+  $('edDate').value = r.date; $('edDate').max = today();
+  $('edNote').value = r.note || '';
+  $('edErr').textContent = '';
+  $('sheet').classList.add('on');
+}
+function closeEdit(){ $('sheet').classList.remove('on'); editing = null; }
+$('edClose').onclick = closeEdit;
+$('sheetBg').onclick = closeEdit;
+$('edAmount').oninput = function(){ this.value = this.value.replace(/\D/g, '').slice(0, 9); };
+$('edSave').onclick = function(){
+  if (!editing) return;
+  var amount = Number($('edAmount').value), date = $('edDate').value, note = $('edNote').value.trim();
+  if (!amount) { $('edErr').textContent = 'Введите сумму'; return; }
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) { $('edErr').textContent = 'Выберите дату'; return; }
+  if (!note) { $('edErr').textContent = 'Комментарий обязателен'; return; }
+  if (amount === Math.round(editing.amount) && date === editing.date && note === (editing.note || '')) { closeEdit(); return; }
+  $('busy').classList.add('on');
+  runner()
+    .withSuccessHandler(function(res){
+      $('busy').classList.remove('on'); closeEdit();
+      toast('<b>✓ Изменено: ' + esc(res.name) + ', ' + money(res.amount) + '</b>' + esc(human(res.date)));
+      loadHist();
+    })
+    .withFailureHandler(function(e){ $('busy').classList.remove('on'); $('edErr').textContent = 'Не сохранилось: ' + e.message; })
+    .editExpense({ id: editing.id, amount: amount, date: date, note: note });
+};
+$('edDelete').onclick = function(){
+  if (!editing) return;
+  if ($('edDelete').dataset.sure !== '1') {
+    $('edDelete').dataset.sure = '1'; $('edDelete').textContent = 'Точно удалить? Нажмите ещё раз';
+    setTimeout(function(){ $('edDelete').dataset.sure = ''; $('edDelete').textContent = 'Удалить запись'; }, 3500);
+    return;
+  }
+  $('edDelete').dataset.sure = ''; $('edDelete').textContent = 'Удалить запись';
+  var id = editing.id; closeEdit();
+  undo(id, loadHist);
+};
 
 /* ---------- навигация ---------- */
 $('next').onclick = function(){

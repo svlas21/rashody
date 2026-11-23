@@ -1,7 +1,7 @@
 // Офлайн-кеш: приложение открывается мгновенно из памяти телефона,
 // а свежая версия подкачивается в фоне и применяется при следующем открытии.
 // Запросы к таблице (script.google.com) не кешируются.
-const CACHE = 'rashody-v5';
+const CACHE = 'rashody-v6';
 const SHELL = ['./', 'index.html', 'manifest.webmanifest', 'icon-180.png', 'icon-192.png', 'icon-512.png'];
 
 self.addEventListener('install', e => {
