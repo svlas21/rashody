@@ -110,11 +110,13 @@
   .toast button{border:0;background:none;color:var(--bg);font:inherit;font-weight:700;text-decoration:underline;padding:6px}
   .toast.err{background:var(--err);color:#fff}
   .party{position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:20}
-  .party .flyer{position:absolute;font-size:72px;line-height:1;will-change:transform;filter:drop-shadow(0 6px 10px rgba(0,0,0,.18))}
-  .party .bit{position:absolute;width:9px;height:14px;border-radius:2px;will-change:transform,opacity}
-  .party .cheer{position:absolute;left:50%;top:22%;transform:translate(-50%,0);background:var(--card);color:var(--ink);
-    border:1px solid var(--line);border-radius:999px;padding:10px 18px;font-weight:700;font-size:17px;white-space:nowrap;
-    box-shadow:0 10px 30px rgba(0,0,0,.15)}
+  .party .flyer{position:absolute;left:0;top:0;font-size:84px;line-height:1;will-change:transform;filter:drop-shadow(0 8px 12px rgba(0,0,0,.2))}
+  .party .bit{position:absolute;left:0;top:0;width:10px;height:15px;border-radius:2px;will-change:transform,opacity}
+  .party .cheer{position:absolute;left:50%;top:34%;transform:translate(-50%,-50%);
+    background:var(--accent);color:var(--accent-ink);border-radius:22px;padding:16px 26px;
+    font-weight:800;font-size:24px;line-height:1.2;text-align:center;max-width:86vw;
+    box-shadow:0 14px 40px rgba(0,0,0,.25), 0 0 0 6px color-mix(in srgb, var(--accent) 22%, transparent)}
+  .party .cheer .em{display:block;font-size:44px;margin-bottom:4px}
   .busy{position:fixed;inset:0;background:rgba(0,0,0,.08);display:none;z-index:9}
   .busy.on{display:block}
 </style>
@@ -433,38 +435,55 @@ function reduced(){ try { return matchMedia('(prefers-reduced-motion: reduce)').
 function celebrate(){
   var box = $('party'); if (!box.animate) return;
   var W = innerWidth, H = innerHeight, calm = reduced();
+  var hero = pick(FLYERS);
+  box.innerHTML = '';   // если предыдущий праздник ещё идёт — начинаем заново
 
-  // фраза
-  var c = document.createElement('div'); c.className = 'cheer'; c.textContent = pick(CHEERS); box.appendChild(c);
-  c.animate([{opacity:0, transform:'translate(-50%,12px) scale(.9)'},{opacity:1, transform:'translate(-50%,0) scale(1)', offset:.15},
-             {opacity:1, transform:'translate(-50%,0) scale(1)', offset:.8},{opacity:0, transform:'translate(-50%,-8px) scale(.98)'}],
-            {duration:1900, easing:'ease-out'}).onfinish = function(){ c.remove(); };
-  if (calm) return;
+  // Тайминг (мс): фраза висит ~3,4 с, персонаж летит 3,2 с, конфетти падает 3–4 с
+  var CHEER_MS = 3400, FLY_MS = 3200;
 
-  // персонаж пролетает по дуге снизу-слева вверх-направо (или наоборот)
-  var f = document.createElement('div'); f.className = 'flyer'; f.textContent = pick(FLYERS); box.appendChild(f);
-  var ltr = Math.random() < .5, x0 = ltr ? -90 : W + 20, x1 = ltr ? W + 20 : -90;
-  var y0 = H * (.62 + Math.random() * .18), y1 = H * (.08 + Math.random() * .12), flip = ltr ? 1 : -1;
-  var frames = [];
-  for (var i = 0; i <= 10; i++) {
-    var t = i / 10, x = x0 + (x1 - x0) * t, y = y0 + (y1 - y0) * t - Math.sin(t * Math.PI) * H * .12 + Math.sin(t * Math.PI * 4) * 12;
-    frames.push({ transform: 'translate(' + x + 'px,' + y + 'px) scaleX(' + flip + ') rotate(' + (Math.sin(t * Math.PI * 4) * 10) + 'deg)' });
+  if (!calm) {
+    // конфетти: вылетает из-за карточки с фразой, медленно оседает вниз
+    for (var k = 0; k < 60; k++) (function(){
+      var b = document.createElement('div'); b.className = 'bit'; b.style.background = pick(CONFETTI);
+      if (Math.random() < .3) { b.style.borderRadius = '50%'; b.style.width = b.style.height = '10px'; }
+      box.appendChild(b);
+      var sx = W / 2 - 5, sy = H * .34, ang = Math.random() * Math.PI * 2, sp = 110 + Math.random() * 200;
+      var dx = Math.cos(ang) * sp, dy = Math.sin(ang) * sp * .8 - 120, rot = (Math.random() * 900 - 450);
+      var sway = (Math.random() - .5) * 60;
+      b.animate([
+        { transform: 'translate(' + sx + 'px,' + sy + 'px) rotate(0) scale(.6)', opacity: 0 },
+        { transform: 'translate(' + (sx + dx) + 'px,' + (sy + dy) + 'px) rotate(' + rot * .3 + 'deg) scale(1)', opacity: 1, offset: .22 },
+        { transform: 'translate(' + (sx + dx * 1.15 + sway) + 'px,' + (sy + dy + H * .25) + 'px) rotate(' + rot * .65 + 'deg)', opacity: 1, offset: .6 },
+        { transform: 'translate(' + (sx + dx * 1.25 - sway) + 'px,' + (sy + dy + H * .6) + 'px) rotate(' + rot + 'deg)', opacity: 0 }
+      ], { duration: 3000 + Math.random() * 1000, delay: Math.random() * 120, easing: 'cubic-bezier(.15,.55,.35,1)', fill: 'backwards' })
+        .onfinish = function(){ b.remove(); };
+    })();
+
+    // персонаж неспешно пролетает по дуге с покачиванием
+    var f = document.createElement('div'); f.className = 'flyer'; f.textContent = hero; box.appendChild(f);
+    var ltr = Math.random() < .5, x0 = ltr ? -110 : W + 20, x1 = ltr ? W + 20 : -110;
+    var y0 = H * (.66 + Math.random() * .12), y1 = H * (.06 + Math.random() * .08), flip = ltr ? 1 : -1;
+    var frames = [];
+    for (var i = 0; i <= 40; i++) {
+      var t = i / 40, x = x0 + (x1 - x0) * t;
+      var y = y0 + (y1 - y0) * t - Math.sin(t * Math.PI) * H * .14 + Math.sin(t * Math.PI * 5) * 14;
+      frames.push({ transform: 'translate(' + x + 'px,' + y + 'px) scaleX(' + flip + ') rotate(' + (Math.sin(t * Math.PI * 5) * 9) + 'deg)' });
+    }
+    f.animate(frames, { duration: FLY_MS, delay: 150, easing: 'ease-in-out', fill: 'backwards' }).onfinish = function(){ f.remove(); };
   }
-  f.animate(frames, { duration: 1700, easing: 'cubic-bezier(.35,.1,.45,1)' }).onfinish = function(){ f.remove(); };
 
-  // конфетти из центра
-  for (var k = 0; k < 46; k++) (function(){
-    var b = document.createElement('div'); b.className = 'bit'; b.style.background = pick(CONFETTI);
-    if (Math.random() < .3) { b.style.borderRadius = '50%'; b.style.width = b.style.height = '9px'; }
-    box.appendChild(b);
-    var sx = W / 2, sy = H * .32, ang = Math.random() * Math.PI * 2, sp = 120 + Math.random() * 220;
-    var dx = Math.cos(ang) * sp, dy = Math.sin(ang) * sp - 140, rot = (Math.random() * 720 - 360);
-    b.animate([
-      { transform: 'translate(' + sx + 'px,' + sy + 'px) rotate(0)', opacity: 1 },
-      { transform: 'translate(' + (sx + dx) + 'px,' + (sy + dy) + 'px) rotate(' + rot / 2 + 'deg)', opacity: 1, offset: .35 },
-      { transform: 'translate(' + (sx + dx * 1.3) + 'px,' + (sy + dy + H * .55) + 'px) rotate(' + rot + 'deg)', opacity: 0 }
-    ], { duration: 1500 + Math.random() * 700, easing: 'cubic-bezier(.2,.6,.4,1)' }).onfinish = function(){ b.remove(); };
-  })();
+  // фраза — поверх всего, крупно, с «пружинкой» при появлении
+  var c = document.createElement('div'); c.className = 'cheer';
+  c.innerHTML = '<span class="em">' + hero + '</span>' + esc(pick(CHEERS));
+  box.appendChild(c);
+  c.animate([
+    { opacity: 0, transform: 'translate(-50%,-50%) scale(.5)' },
+    { opacity: 1, transform: 'translate(-50%,-50%) scale(1.08)', offset: .1 },
+    { opacity: 1, transform: 'translate(-50%,-50%) scale(.97)', offset: .16 },
+    { opacity: 1, transform: 'translate(-50%,-50%) scale(1)', offset: .22 },
+    { opacity: 1, transform: 'translate(-50%,-50%) scale(1)', offset: .85 },
+    { opacity: 0, transform: 'translate(-50%,-56%) scale(.96)' }
+  ], { duration: CHEER_MS, easing: 'ease-out' }).onfinish = function(){ c.remove(); };
 }
 
 var toastTimer;
