@@ -117,6 +117,47 @@
   .del{width:100%;height:48px;border:1px solid var(--line);background:none;color:var(--err);border-radius:14px;font:inherit;font-weight:600}
   @keyframes slideUp{from{transform:translateY(100%)}to{transform:none}}
   @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+  .navr{display:flex;gap:16px}
+  .mon{display:flex;align-items:center;justify-content:center;gap:18px;padding:2px 18px 6px}
+  .mon b{font-size:17px;min-width:110px;text-align:center}
+  .mbtn{width:40px;height:36px;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:10px;font-size:20px}
+  .mbtn:disabled{opacity:.3}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:16px;margin-bottom:12px}
+  .hero .lbl{color:var(--ink2);font-size:13px}
+  .hero .big{font-size:32px;font-weight:800;font-variant-numeric:tabular-nums;letter-spacing:-.5px}
+  .hero .of{color:var(--ink2);font-size:15px;margin-bottom:12px}
+  .bar{position:relative;height:10px;border-radius:6px;background:var(--line);overflow:visible}
+  .bar .f{position:absolute;left:0;top:0;bottom:0;border-radius:6px;background:var(--accent)}
+  .bar.sm{height:6px;border-radius:4px}
+  .bar.sm .f{border-radius:4px}
+  .bar .pace{position:absolute;top:-5px;bottom:-5px;width:2px;background:var(--ink);border-radius:1px}
+  .pacel{font-size:12px;color:var(--ink2);margin-top:8px;display:flex;align-items:center;gap:6px}
+  .pacel i{display:inline-block;width:2px;height:12px;background:var(--ink);border-radius:1px}
+  .f.warn{background:#d99a00} .f.over{background:var(--err)} .f.none{background:var(--ink2);opacity:.35}
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px}
+  .stat{background:var(--bg);border-radius:12px;padding:10px}
+  .stat .l{font-size:12px;color:var(--ink2)} .stat .v{font-weight:700;font-variant-numeric:tabular-nums;font-size:15px;margin-top:2px}
+  .sv{margin-top:10px} .sv:first-of-type{margin-top:0}
+  .svh{display:flex;justify-content:space-between;align-items:baseline;gap:10px;font-size:14px;margin-bottom:6px}
+  .svh span:first-child{flex:1;min-width:0}
+  .svh b{text-align:right}
+  .svh b{font-variant-numeric:tabular-nums}
+  .svs{font-size:12px;color:var(--ink2);margin-top:5px}
+  .seg{display:flex;gap:6px;margin:4px 0 4px}
+  .seg button{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:999px;padding:7px 14px;font:inherit;font-size:14px}
+  .seg button.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+  .gh{display:flex;justify-content:space-between;align-items:baseline;margin:18px 4px 8px}
+  .gh .t{font-size:13px;font-weight:600;color:var(--ink2);text-transform:uppercase;letter-spacing:.04em}
+  .gh .s{font-size:13px;color:var(--ink2);font-variant-numeric:tabular-nums}
+  .crow{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:11px 12px;margin-bottom:8px}
+  .crow .top2{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+  .crow .ic2{flex:0 0 32px;height:32px;border-radius:9px;background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:17px}
+  .crow .nm2{flex:1;min-width:0;font-weight:600;font-size:15px;line-height:1.25}
+  .crow .nums{font-variant-numeric:tabular-nums;font-size:14px;white-space:nowrap}
+  .crow .nums span{color:var(--ink2)}
+  .crow .st{font-size:12.5px;margin-top:6px;color:var(--ink2)}
+  .st.warn{color:#a87400} .st.over{color:var(--err);font-weight:600}
+  @media (prefers-color-scheme: dark){ .f.warn{background:#e0a91a} .st.warn{color:#e0b44a} }
   .empty{color:var(--ink2);text-align:center;padding:40px 0}
 
   /* уведомление */
@@ -155,7 +196,7 @@
 <section class="screen on" id="s1">
   <div class="top">
     <h1>Новый расход</h1>
-    <button class="link" id="toHist">История</button>
+    <div class="navr"><button class="link" id="toDash">Бюджет</button><button class="link" id="toHist">История</button></div>
   </div>
   <div class="dates" id="dates"></div>
   <div class="amount">
@@ -182,6 +223,19 @@
 </section>
 
 <!-- Экран 3: история -->
+<!-- Экран 4: план / факт -->
+<section class="screen" id="s4">
+  <div class="top">
+    <button class="link" id="dashBack">‹ Назад</button>
+    <h1>План / факт</h1>
+    <span style="width:60px"></span>
+  </div>
+  <div class="mon">
+    <button class="mbtn" id="mPrev">‹</button><b id="mName"></b><button class="mbtn" id="mNext">›</button>
+  </div>
+  <div class="list" id="dash"><div class="empty">Загружаю…</div></div>
+</section>
+
 <section class="screen" id="s3">
   <div class="top">
     <button class="link" id="histBack">‹ Назад</button>
@@ -231,7 +285,8 @@ function runner(){
     addExpense:    function(e){ call('add', e, s, f, true); },
     undoExpense:   function(id){ call('undo', { id: id }, s, f, true); },
     getRecent:     function(n){ call('recent', { limit: n }, s, f); },
-    editExpense:   function(p){ call('edit', p, s, f, true); }
+    editExpense:   function(p){ call('edit', p, s, f, true); },
+    getSummary:    function(m){ call('summary', { month: m }, s, f); }
   };
   return r;
 }
@@ -289,7 +344,7 @@ function human(s){
   var p = s.split('-'); return (+p[2]) + ' ' + MONTHS_GEN[+p[1] - 1];
 }
 function store(k, v){ try { if (v === undefined) return JSON.parse(localStorage.getItem(k)); localStorage.setItem(k, JSON.stringify(v)); } catch(e){ return null; } }
-function show(id){ ['s1','s2','s3'].forEach(function(s){ $(s).classList.toggle('on', s === id); }); }
+function show(id){ ['s1','s2','s3','s4'].forEach(function(s){ $(s).classList.toggle('on', s === id); }); }
 
 /* ---------- даты ---------- */
 function renderDates(){
@@ -594,6 +649,104 @@ $('edDelete').onclick = function(){
   var id = editing.id; closeEdit();
   undo(id, loadHist);
 };
+
+
+/* ---------- план / факт ---------- */
+var MONTHS_NOM = ['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
+var dash = { m: new Date().getMonth() + 1, onlyOver: false, data: null };
+function dashTitle(){
+  $('mName').textContent = MONTHS_NOM[dash.m - 1];
+  $('mPrev').disabled = dash.m <= 1; $('mNext').disabled = dash.m >= 12;
+}
+function loadDash(){
+  dashTitle();
+  var m = dash.m, cached = store('sum:' + m);
+  dash.data = cached; if (cached) renderDash(); else $('dash').innerHTML = '<div class="empty">Загружаю…</div>';
+  runner()
+    .withSuccessHandler(function(d){ if (dash.m !== m) return; dash.data = d; store('sum:' + m, d); renderDash(); })
+    .withFailureHandler(function(e){ if (dash.m === m && !dash.data) $('dash').innerHTML = '<div class="empty">Не удалось загрузить.<br>' + esc(e.message) + '</div>'; })
+    .getSummary(m);
+}
+function pct(a, b){ return b > 0 ? Math.max(0, Math.min(100, a / b * 100)) : 0; }
+function catState(c){
+  if (!c.plan) return { cls: 'none', text: 'без плана' };
+  var left = c.plan - c.spent;
+  if (left < 0) return { cls: 'over', text: '⚠ перерасход ' + money(-left) };
+  if (c.spent >= c.plan * 0.9) return { cls: 'warn', text: '● почти всё: осталось ' + money(left) };
+  return { cls: '', text: 'осталось ' + money(left) };
+}
+function renderDash(){
+  var d = dash.data, box = $('dash'); box.innerHTML = '';
+  if (!d) return;
+  if (d.missing) { box.innerHTML = '<div class="empty">Листа «' + esc(d.sheet) + '» в таблице пока нет</div>'; return; }
+  var t = d.totals || {}, spent = t.spent || 0, plan = t.plan || 0;
+  var now = new Date(), cur = (now.getMonth() + 1 === d.month);
+  var dim = new Date(now.getFullYear(), d.month, 0).getDate();
+  var pace = cur ? now.getDate() / dim : null;
+
+  // главная карточка
+  var over = plan && spent > plan, fcls = over ? 'over' : (pace != null && plan && spent / plan > pace + 0.1 ? 'warn' : '');
+  var hero = '<div class="card hero"><div class="lbl">Потрачено за месяц</div>' +
+    '<div class="big">' + money(spent) + '</div><div class="of">из ' + money(plan) + ' по плану · ' + Math.round(plan ? spent / plan * 100 : 0) + '%</div>' +
+    '<div class="bar"><div class="f ' + fcls + '" style="width:' + pct(spent, plan) + '%"></div>' +
+    (pace != null ? '<div class="pace" style="left:calc(' + (pace * 100) + '% - 1px)"></div>' : '') + '</div>' +
+    (pace != null ? '<div class="pacel"><i></i>сегодня ' + now.getDate() + '-е: по плану к этому дню ' + money(plan * pace) + '</div>' : '') +
+    '<div class="stats">' +
+      '<div class="stat"><div class="l">Доходы</div><div class="v">' + money(t.income || 0) + '</div></div>' +
+      '<div class="stat"><div class="l">Сальдо</div><div class="v">' + money(t.saldo != null ? t.saldo : (t.income || 0) - spent) + '</div></div>' +
+      '<div class="stat"><div class="l">' + (over ? 'Сверх плана' : 'Осталось') + '</div><div class="v" style="' + (over ? 'color:var(--err)' : '') + '">' + money(Math.abs(plan - spent)) + '</div></div>' +
+    '</div></div>';
+  box.insertAdjacentHTML('beforeend', hero);
+
+  // накопления
+  if (d.savings && d.savings.length) {
+    var sv = '<div class="card"><div class="lbl" style="color:var(--ink2);font-size:13px;margin-bottom:10px">Накопления</div>';
+    d.savings.forEach(function(s){
+      var g = s.goal || 0, v = s.saved || 0;
+      sv += '<div class="sv"><div class="svh"><span>' + esc(s.name) + '</span><b>' + money(v) + (g ? ' <span style="color:var(--ink2);font-weight:400">из ' + money(g) + '</span>' : '') + '</b></div>' +
+        (g ? '<div class="bar sm"><div class="f" style="width:' + pct(v, g) + '%"></div></div><div class="svs">' + Math.round(v / g * 100) + '% · осталось ' + money(Math.max(0, g - v)) + '</div>' : '') + '</div>';
+    });
+    box.insertAdjacentHTML('beforeend', sv + '</div>');
+  }
+
+  // фильтр
+  var nOver = d.cats.filter(function(c){ return c.plan && c.spent > c.plan; }).length;
+  var seg = document.createElement('div'); seg.className = 'seg';
+  seg.innerHTML = '<button class="' + (dash.onlyOver ? '' : 'on') + '">Все категории</button><button class="' + (dash.onlyOver ? 'on' : '') + '">Перерасход · ' + nOver + '</button>';
+  seg.children[0].onclick = function(){ dash.onlyOver = false; renderDash(); };
+  seg.children[1].onclick = function(){ dash.onlyOver = true; renderDash(); };
+  box.appendChild(seg);
+
+  // группы в том же порядке, что и на экране категорий
+  var groups = [];
+  d.cats.forEach(function(c){
+    if (!c.plan && !c.spent) return;
+    if (dash.onlyOver && !(c.plan && c.spent > c.plan) && !(!c.plan && c.spent)) return;
+    var g = groups.find(function(x){ return x.group === c.group; });
+    if (!g) { g = { group: c.group, items: [] }; groups.push(g); }
+    g.items.push(c);
+  });
+  var who = (WHO || '').toLowerCase();
+  function rank(g){ var n = g.group.toLowerCase(); return who && n === who ? 0 : n.indexOf('обязательн') >= 0 ? 1 : n.indexOf('переменн') >= 0 ? 2 : 3; }
+  groups.sort(function(a, b){ return rank(a) - rank(b); });
+  if (!groups.length) box.insertAdjacentHTML('beforeend', '<div class="empty">' + (dash.onlyOver ? 'Перерасхода нет 👍' : 'Нет данных') + '</div>');
+  groups.forEach(function(g){
+    var gs = 0, gp = 0; g.items.forEach(function(c){ gs += c.spent; gp += c.plan; });
+    var html = '<div class="gh"><span class="t">' + esc(title(g)) + '</span>' + (dash.onlyOver ? '' : '<span class="s">' + money(gs) + ' / ' + money(gp) + '</span>') + '</div>';
+    g.items.forEach(function(c){
+      var st = catState(c);
+      html += '<div class="crow"><div class="top2"><div class="ic2">' + icon(c.name) + '</div><div class="nm2">' + esc(c.name) + '</div>' +
+        '<div class="nums">' + money(c.spent) + ' <span>/ ' + (c.plan ? money(c.plan) : '—') + '</span></div></div>' +
+        '<div class="bar sm"><div class="f ' + st.cls + '" style="width:' + (c.plan ? pct(c.spent, c.plan) : 100) + '%"></div></div>' +
+        '<div class="st ' + st.cls + '">' + st.text + '</div></div>';
+    });
+    box.insertAdjacentHTML('beforeend', html);
+  });
+}
+$('toDash').onclick = function(){ show('s4'); loadDash(); };
+$('dashBack').onclick = function(){ show('s1'); };
+$('mPrev').onclick = function(){ if (dash.m > 1) { dash.m--; loadDash(); } };
+$('mNext').onclick = function(){ if (dash.m < 12) { dash.m++; loadDash(); } };
 
 /* ---------- навигация ---------- */
 $('next').onclick = function(){
